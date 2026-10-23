@@ -1,26 +1,26 @@
 export function SettingsPanel({ options, onOptionsChange, disabled }) {
   function handlePreset(preset) {
     if (disabled) return
-    if (preset === 'default') {
+    if (preset === 'high') {
       onOptionsChange({
         ...options,
-        onsetThreshold: 0.5,
-        frameThreshold: 0.3,
-        minNoteLength: 11
+        onsetThreshold: 0.38,
+        frameThreshold: 0.22,
+        minNoteLength: 5
       })
-    } else if (preset === 'vocal') {
+    } else if (preset === 'balanced') {
+      onOptionsChange({
+        ...options,
+        onsetThreshold: 0.45,
+        frameThreshold: 0.28,
+        minNoteLength: 7
+      })
+    } else if (preset === 'lead') {
       onOptionsChange({
         ...options,
         onsetThreshold: 0.6,
         frameThreshold: 0.35,
-        minNoteLength: 14
-      })
-    } else if (preset === 'chords') {
-      onOptionsChange({
-        ...options,
-        onsetThreshold: 0.4,
-        frameThreshold: 0.25,
-        minNoteLength: 9
+        minNoteLength: 12
       })
     }
   }
@@ -36,53 +36,53 @@ export function SettingsPanel({ options, onOptionsChange, disabled }) {
   return (
     <div className="settings-card">
       <div className="isolation-mode-selector">
-        <span className="setting-label-header">Fokus Transkripsi:</span>
+        <span className="setting-label-header">Karakter Sinyal Audio:</span>
         <div className="mode-toggle-group">
-          <button
-            type="button"
-            className={`mode-btn ${options.isolationMode === 'instrumental' ? 'active' : ''}`}
-            onClick={() => handleModeChange('instrumental')}
-            disabled={disabled}
-          >
-            Instrumen Musik (Hilangkan Vokal)
-          </button>
           <button
             type="button"
             className={`mode-btn ${options.isolationMode === 'all' ? 'active' : ''}`}
             onClick={() => handleModeChange('all')}
             disabled={disabled}
           >
-            Semua Suara (Musik + Vokal)
+            Semua Musik (Harmoni & Bass Lengkap)
+          </button>
+          <button
+            type="button"
+            className={`mode-btn ${options.isolationMode === 'instrumental' ? 'active' : ''}`}
+            onClick={() => handleModeChange('instrumental')}
+            disabled={disabled}
+          >
+            Instrumen Saja (Redam Vokal Tengah)
           </button>
         </div>
       </div>
 
       <div className="settings-header">
-        <h4 className="settings-title">Sensitivitas Deteksi Not</h4>
+        <h4 className="settings-title">Preset Kualitas & Sensitivitas</h4>
         <div className="presets-group">
           <button
             type="button"
-            className="preset-btn"
-            onClick={() => handlePreset('default')}
+            className={`preset-btn ${options.onsetThreshold === 0.38 && options.minNoteLength === 5 ? 'active' : ''}`}
+            onClick={() => handlePreset('high')}
             disabled={disabled}
           >
-            Standar
+            Presisi Tinggi (Akord & Harmoni)
           </button>
           <button
             type="button"
-            className="preset-btn"
-            onClick={() => handlePreset('vocal')}
+            className={`preset-btn ${options.onsetThreshold === 0.45 && options.minNoteLength === 7 ? 'active' : ''}`}
+            onClick={() => handlePreset('balanced')}
             disabled={disabled}
           >
-            Melodi Solo
+            Seimbang
           </button>
           <button
             type="button"
-            className="preset-btn"
-            onClick={() => handlePreset('chords')}
+            className={`preset-btn ${options.onsetThreshold === 0.6 && options.minNoteLength === 12 ? 'active' : ''}`}
+            onClick={() => handlePreset('lead')}
             disabled={disabled}
           >
-            Akord / Polifonik
+            Hanya Melodi Utama
           </button>
         </div>
       </div>
@@ -90,14 +90,14 @@ export function SettingsPanel({ options, onOptionsChange, disabled }) {
       <div className="sliders-grid">
         <div className="setting-item">
           <div className="setting-label-row">
-            <span className="setting-label">Sensitivitas Onset (Awal Not)</span>
+            <span className="setting-label">Sensitivitas Onset (Deteksi Awal Not)</span>
             <span className="setting-value">{options.onsetThreshold}</span>
           </div>
           <input
             type="range"
             min="0.1"
             max="0.9"
-            step="0.05"
+            step="0.02"
             value={options.onsetThreshold}
             disabled={disabled}
             onChange={(e) =>
@@ -111,14 +111,14 @@ export function SettingsPanel({ options, onOptionsChange, disabled }) {
 
         <div className="setting-item">
           <div className="setting-label-row">
-            <span className="setting-label">Sensitivitas Frame (Daya Tahan Not)</span>
+            <span className="setting-label">Sensitivitas Frame (Ketahanan Sustain)</span>
             <span className="setting-value">{options.frameThreshold}</span>
           </div>
           <input
             type="range"
             min="0.1"
             max="0.9"
-            step="0.05"
+            step="0.02"
             value={options.frameThreshold}
             disabled={disabled}
             onChange={(e) =>

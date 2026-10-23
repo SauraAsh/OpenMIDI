@@ -18,10 +18,10 @@ function App() {
   const [error, setError] = useState('')
 
   const [options, setOptions] = useState({
-    onsetThreshold: 0.5,
-    frameThreshold: 0.3,
-    minNoteLength: 11,
-    isolationMode: 'instrumental'
+    onsetThreshold: 0.38,
+    frameThreshold: 0.22,
+    minNoteLength: 5,
+    isolationMode: 'all'
   })
 
   async function handleFileSelected(file) {

@@ -51,16 +51,15 @@ export async function decodeAudioFile(file) {
   return decodedBuffer
 }
 
-export async function resampleBuffer(decodedBuffer, isolationMode = 'instrumental') {
+export async function resampleBuffer(decodedBuffer, isolationMode = 'all') {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext
   const audioCtx = new AudioContextClass()
   const targetSampleRate = 22050
 
-  let monoBuffer = decodedBuffer
+  const monoData = new Float32Array(decodedBuffer.length)
   if (decodedBuffer.numberOfChannels >= 2) {
     const left = decodedBuffer.getChannelData(0)
     const right = decodedBuffer.getChannelData(1)
-    const monoData = new Float32Array(decodedBuffer.length)
 
     if (isolationMode === 'instrumental') {
       for (let i = 0; i < decodedBuffer.length; i++) {
@@ -71,10 +70,25 @@ export async function resampleBuffer(decodedBuffer, isolationMode = 'instrumenta
         monoData[i] = (left[i] + right[i]) * 0.5
       }
     }
-
-    monoBuffer = audioCtx.createBuffer(1, decodedBuffer.length, decodedBuffer.sampleRate)
-    monoBuffer.copyToChannel(monoData, 0)
+  } else {
+    const channelData = decodedBuffer.getChannelData(0)
+    monoData.set(channelData)
   }
+
+  let maxPeak = 0
+  for (let i = 0; i < monoData.length; i++) {
+    const absVal = Math.abs(monoData[i])
+    if (absVal > maxPeak) maxPeak = absVal
+  }
+  if (maxPeak > 0.001 && maxPeak < 0.95) {
+    const gainFactor = 0.95 / maxPeak
+    for (let i = 0; i < monoData.length; i++) {
+      monoData[i] *= gainFactor
+    }
+  }
+
+  const monoBuffer = audioCtx.createBuffer(1, decodedBuffer.length, decodedBuffer.sampleRate)
+  monoBuffer.copyToChannel(monoData, 0)
 
   const offlineCtx = new OfflineAudioContext(
     1,
@@ -92,7 +106,7 @@ export async function resampleBuffer(decodedBuffer, isolationMode = 'instrumenta
   return resampledBuffer
 }
 
-export async function decodeAndResampleAudio(file, isolationMode = 'instrumental') {
+export async function decodeAndResampleAudio(file, isolationMode = 'all') {
   const decodedBuffer = await decodeAudioFile(file)
   const resampledBuffer = await resampleBuffer(decodedBuffer, isolationMode)
 
@@ -105,12 +119,14 @@ export async function decodeAndResampleAudio(file, isolationMode = 'instrumental
 
 export async function transcribeAudio(resampledBuffer, options = {}, onProgress = () => {}) {
   const {
-    onsetThreshold = 0.5,
-    frameThreshold = 0.3,
-    minNoteLength = 11,
+    onsetThreshold = 0.38,
+    frameThreshold = 0.22,
+    minNoteLength = 5,
     inferOnsets = true,
     maxFreq = null,
-    minFreq = null
+    minFreq = null,
+    melodiaTrick = true,
+    energyTolerance = 11
   } = options
 
   const model = await tf.loadGraphModel('/model/model.json')
@@ -203,7 +219,9 @@ export async function transcribeAudio(resampledBuffer, options = {}, onProgress 
     minNoteLength,
     inferOnsets,
     maxFreq,
-    minFreq
+    minFreq,
+    melodiaTrick,
+    energyTolerance
   )
 
   const notesWithBends = addPitchBendsToNoteEvents(contours, rawNotes)
@@ -218,11 +236,12 @@ export function exportToMidi(notes, songTitle = 'Transcribed Music') {
   track.name = songTitle
 
   notes.forEach((note) => {
+    const scaledVelocity = Math.min(1.0, Math.max(0.4, note.amplitude * 1.8))
     track.addNote({
       midi: note.pitchMidi,
       time: note.startTimeSeconds,
-      duration: note.durationSeconds,
-      velocity: Math.max(0.1, Math.min(1.0, note.amplitude))
+      duration: Math.max(0.04, note.durationSeconds),
+      velocity: scaledVelocity
     })
 
     if (Array.isArray(note.pitchBends) && note.pitchBends.length > 0) {
